@@ -1,0 +1,4 @@
+*.tar.*
+*.whl
+.mypy_cache
+__pycache__

@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "prometheus-smart-collector"
+version = "0.0.1"
+description = "Prometheus collector for SMART metrics"
+authors = ["James Geboski <jgeboski@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "prometheus_smart_collector.py"}]
+
+[tool.poetry.dependencies]
+python = ">= 3.7"
+aiofiles = ">= 22.1.0"
+click = ">= 1.0.0"
+
+[tool.poetry.scripts]
+prometheus-smart-collector = "prometheus_smart_collector:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
