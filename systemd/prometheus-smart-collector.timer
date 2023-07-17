@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically run Prometheus SMART collector
+
+[Timer]
+AccuracySec=5s
+OnBootSec=45s
+OnUnitActiveSec=45s
+
+[Install]
+WantedBy=timers.target

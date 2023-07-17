@@ -1,0 +1,9 @@
+[Unit]
+Description=Prometheus SMART collector
+
+[Service]
+Type=oneshot
+ExecStart=prometheus-smart-collector
+
+[Install]
+WantedBy=multi-user.target
