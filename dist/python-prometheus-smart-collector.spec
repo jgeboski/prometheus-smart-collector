@@ -1,7 +1,7 @@
 %global shortname prometheus-smart-collector
 
 Name:           python-%{shortname}
-Version:        0.0.1
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Prometheus collector for SMART metrics
 

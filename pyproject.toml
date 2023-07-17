@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prometheus-smart-collector"
-version = "0.0.1"
+version = "1.0.0"
 description = "Prometheus collector for SMART metrics"
 authors = ["James Geboski <jgeboski@gmail.com>"]
 license = "MIT"
