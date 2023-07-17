@@ -38,6 +38,20 @@ JLT = TypeVar("JLT", bool, float, int, str)
 logger = logging.getLogger(__name__)
 
 
+class Attribute(NamedTuple):
+    name: str
+    id: Optional[int] = None
+
+    def __hash__(self) -> int:
+        if self.id is not None:
+            return hash(self.id)
+
+        return hash(self.name or self.id)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Device(NamedTuple):
     name: str
     type: str
@@ -45,12 +59,6 @@ class Device(NamedTuple):
 
     def __str__(self) -> str:
         return self.name
-
-    def aslabels(self) -> str:
-        return ",".join(
-            f'{name}="{value}"'
-            for name, value in sorted(self._asdict().items(), key=lambda kv: kv[0])
-        )
 
 
 def await_async(async_func):
@@ -137,16 +145,19 @@ def get_sanitized_attr_name(name: str) -> str:
     return sanitized
 
 
-async def gen_devices_attrs(devices: List[Device]) -> Dict[Device, Dict[str, int]]:
-    devices_attrs: Dict[Device, Dict[str, int]] = {}
+async def gen_devices_attrs(
+    devices: List[Device],
+) -> Dict[Device, Dict[Attribute, int]]:
+    devices_attrs: Dict[Device, Dict[Attribute, int]] = {}
     device_results = await asyncio.gather(
         *(smartctl("--all", device.name) for device in devices)
     )
     for device, raw_info in zip(devices, device_results):
-        device_attrs: Dict[str, int] = {}
+        device_attrs: Dict[Attribute, int] = {}
         for json_attr in get_json_list(raw_info, "ata_smart_attributes.table"):
+            attr_id = get_json_literal(json_attr, int, "id")
             name = get_json_literal(json_attr, str, "name")
-            if not name:
+            if not name or not attr_id:
                 continue
 
             value = get_json_literal(json_attr, int, "raw.value")
@@ -159,8 +170,9 @@ async def gen_devices_attrs(devices: List[Device]) -> Dict[Device, Dict[str, int
             if name == "Temperature_Celsius":
                 value &= 0xFFFFFFFF
 
-            clean_name = get_sanitized_attr_name(name)
-            device_attrs[clean_name] = value
+            attr_name = get_sanitized_attr_name(name)
+            attr = Attribute(name=attr_name, id=attr_id)
+            device_attrs[attr] = value
 
         nvme_attrs = get_json_dict(raw_info, "nvme_smart_health_information_log")
         for name, json_value in nvme_attrs.items():
@@ -174,8 +186,9 @@ async def gen_devices_attrs(devices: List[Device]) -> Dict[Device, Dict[str, int
                 )
                 continue
 
-            name = get_sanitized_attr_name(name)
-            device_attrs[name] = value
+            attr_name = get_sanitized_attr_name(name)
+            attr = Attribute(name=attr_name)
+            device_attrs[attr] = value
 
         if device_attrs:
             devices_attrs[device] = device_attrs
@@ -185,17 +198,34 @@ async def gen_devices_attrs(devices: List[Device]) -> Dict[Device, Dict[str, int
     return devices_attrs
 
 
+def get_labels(device: Device, attr: Attribute) -> str:
+    labels: Dict[str, str] = {
+        "name": device.name,
+        "type": device.type,
+        "protocol": device.protocol,
+    }
+
+    if attr.id is not None:
+        labels["attr_id"] = f"{attr.id}"
+
+    return ",".join(
+        f'{name}="{value}"'
+        for name, value in sorted(labels.items(), key=lambda kv: kv[0])
+    )
+
+
 async def write_device_attrs(
-    device_attrs: Dict[Device, Dict[str, int]],
+    device_attrs: Dict[Device, Dict[Attribute, int]],
     file: str,
 ) -> None:
     metric_count = 0
     await aiofiles.os.makedirs(os.path.dirname(file), exist_ok=True)
     async with aiofiles.open(file, "w") as fp:
         for device, attrs in device_attrs.items():
-            for name, value in attrs.items():
+            for attr, value in attrs.items():
+                labels = get_labels(device, attr)
                 await fp.write(
-                    f"smart_{name}{{{device.aslabels()}}} {float(value)}{os.linesep}"
+                    f"smart_{attr.name}{{{labels}}} {float(value)}{os.linesep}"
                 )
                 metric_count += 1
 
