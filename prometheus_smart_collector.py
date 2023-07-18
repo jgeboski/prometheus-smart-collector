@@ -220,14 +220,18 @@ async def write_device_attrs(
     file: str,
 ) -> None:
     metric_count = 0
+    tmp_file = f"{file}.tmp"
     await aiofiles.os.makedirs(os.path.dirname(file), exist_ok=True)
-    async with aiofiles.open(file, "w") as fp:
+    logger.debug("Temporarily writing metrics to %s", tmp_file)
+    async with aiofiles.open(tmp_file, "w") as fp:
         for device, attrs in device_attrs.items():
             for attr, value in attrs.items():
                 labels = get_labels(device, attr)
                 await fp.write(f"smart_attr{{{labels}}} {float(value)}{os.linesep}")
                 metric_count += 1
 
+    logger.debug("Moving %s to specified path %s", tmp_file, file)
+    await aiofiles.os.replace(tmp_file, file)
     logger.info("Wrote %s metrics to %s", metric_count, file)
 
 
