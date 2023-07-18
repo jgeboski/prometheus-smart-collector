@@ -128,6 +128,7 @@ async def gen_devices() -> List[Device]:
         device = Device(
             **{field: json_device[field] for field in Device._fields}  # type: ignore
         )
+        logger.debug("Found %s device %s", device.type, device.name)
         devices.append(device)
 
     return devices
