@@ -201,7 +201,7 @@ async def gen_devices_attrs(
 def get_labels(device: Device, attr: Attribute) -> str:
     labels: Dict[str, str] = {
         "name": attr.name,
-        "device": device.name,
+        "device": os.path.basename(device.name),
         "device_type": device.type,
         "device_protocol": device.protocol,
     }
