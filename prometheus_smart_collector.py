@@ -200,13 +200,14 @@ async def gen_devices_attrs(
 
 def get_labels(device: Device, attr: Attribute) -> str:
     labels: Dict[str, str] = {
-        "name": device.name,
-        "type": device.type,
-        "protocol": device.protocol,
+        "name": attr.name,
+        "device": device.name,
+        "device_type": device.type,
+        "device_protocol": device.protocol,
     }
 
     if attr.id is not None:
-        labels["attr_id"] = f"{attr.id}"
+        labels["id"] = f"{attr.id}"
 
     return ",".join(
         f'{name}="{value}"'
@@ -224,9 +225,7 @@ async def write_device_attrs(
         for device, attrs in device_attrs.items():
             for attr, value in attrs.items():
                 labels = get_labels(device, attr)
-                await fp.write(
-                    f"smart_{attr.name}{{{labels}}} {float(value)}{os.linesep}"
-                )
+                await fp.write(f"smart_attr{{{labels}}} {float(value)}{os.linesep}")
                 metric_count += 1
 
     logger.info("Wrote %s metrics to %s", metric_count, file)
